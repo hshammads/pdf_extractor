@@ -14,6 +14,7 @@ from pdf2image import convert_from_bytes, convert_from_path
 from pathlib import Path
 from timeit import default_timer as timer
 from PyPDF2 import PdfReader
+from pytesseract import Output
 
 # define constants
 PROJECT_DIR = "/Users/hammadsheikh/Desktop/Documents/Studies/Personal Projects/pdf_extractor/pdf_extractor/"
@@ -82,14 +83,16 @@ def ocr(file):
     # create a df to save each pdf's text
     pages_df = pd.DataFrame(columns = ['conf','text'])
     for (i, page) in enumerate(pdf_file):
-        """
-        print(page)
-        im = page.load()
-        print(im)
-        """
         try:
+            # get image orientation and fix it if needed
+            osd_data = pytesseract.image_to_osd(page, output_type = Output.DICT)
+            page_rotation = osd_data['rotate']
+            if page_rotation > 0:
+                page_rotated = page.rotate(-page_rotation)
+            else:
+                page_rotated = page
             # transfer image of pdf_file into array
-            page_arr = np.asarray(page)
+            page_arr = np.asarray(page_rotated)
             # transfer into grayscale
             page_arr_gray = cv2.cvtColor(page_arr,cv2.COLOR_BGR2GRAY)
             # deskew the page
