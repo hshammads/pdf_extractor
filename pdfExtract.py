@@ -40,10 +40,8 @@ def fix_txt_rot(page):
 def text_pdf(file):
     # creating a pdf reader object
     reader = PdfReader(file)
-
     # store number of pages in pdf file, to use in for loop
     no_pages = len(reader.pages)
-
     # extracting text from each page
     extracted_text = ""
     for i in range(no_pages):
