@@ -11,6 +11,7 @@ HISTORY.txt
 README.txt
 input/
 output/
+rotated/
 *.p
 *PDF
 *txt
