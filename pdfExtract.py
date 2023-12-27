@@ -12,17 +12,36 @@ import pytesseract
 import re
 from pdf2image import convert_from_bytes, convert_from_path
 from pathlib import Path
-from pdfquery import PDFQuery
 from timeit import default_timer as timer
+from PyPDF2 import PdfReader
 
 # define constants
 PROJECT_DIR = "/Users/hammadsheikh/Desktop/Documents/Studies/Personal Projects/pdf_extractor/pdf_extractor/"
 INPUT_DIR = PROJECT_DIR + 'input/'
 OUTPUT_DIR = PROJECT_DIR + 'output/'
 
+# define variables
+# dict for saving df of each pdf, filename is the key
+OCR_dic = {}
+
 # FUNCTION DEFINITIONS
 
-# Some help functions
+# help functions
+# extract text from text searchable pdf
+def text_pdf(file):
+    # creating a pdf reader object
+    reader = PdfReader(file)
+
+    # store number of pages in pdf file, to use in for loop
+    no_pages = len(reader.pages)
+
+    # extracting text from each page
+    extracted_text = ""
+    for i in range(no_pages):
+        page = reader.pages[i]
+        extracted_text += page.extract_text()
+    return extracted_text
+
 # get average confidence value of OCR result
 def get_conf(page_gray):
     df = pytesseract.image_to_data(page_gray,output_type = 'data.frame')
@@ -46,32 +65,14 @@ def deskew(image):
     rotated = cv2.warpAffine(image, M, (w, h), flags = cv2.INTER_CUBIC, borderMode = cv2.BORDER_REPLICATE)
     return rotated
 
-
-"""
-Main part of OCR:
-pages_df: save extracted text for each pdf file, index by page
-OCR_dic : dict for saving df of each pdf, filename is the key
-"""
-
-print("Starting PDF Extractor ...\n")
-file_list = []
-
-for file in glob.iglob(INPUT_DIR + '**/*.pdf', recursive = True):
-    file_list.append(file)
-    file_name = Path(file).name
-    print("Processing file: " + file_name + " located at: " + os.path.dirname(file))
-# %%time
-OCR_dic={}
-for file in file_list:
-    # grab image name - we will need this later
-    file_name = Path(file).name
-    file_name, extension = os.path.splitext(file_name)
-
+# OCR function
+# pages_df: dataframe to save extracted text for each pdf file, index by page
+def ocr(file):
     # convert pdf into image
     pdf_file = convert_from_path(file)
     # create a df to save each pdf's text
     pages_df = pd.DataFrame(columns = ['conf','text'])
-    for (i, page) in enumerate(pdf_file) :
+    for (i, page) in enumerate(pdf_file):
         try:
             # transfer image of pdf_file into array
             page_arr = np.asarray(page)
@@ -89,10 +90,34 @@ for file in file_list:
             # if can't extract then give some notes into df
             pages_df = pages_df._append({'conf': -1,'text': 'N/A'}, ignore_index = True)
             continue
+    return pages_df
+
+print("Starting PDF Extractor ...\n")
+
+for file in glob.iglob(INPUT_DIR + '**/*.pdf', recursive = True):
+    file_name = Path(file).name
+    file_name, extension = os.path.splitext(file_name)
+    print("Processing file: " + file_name + " located at: " + os.path.dirname(file))
+
+    # try to extract text from pdf without OCR
+    text = text_pdf(file)
+
+    if len(text) < 10:
+        # if we weren't able to extract text without OCR, we try OCR
+        pages_df = pd.DataFrame(columns = ['conf','text'])
+        pages_df = ocr(file)
         # save dataframe to text file
-        print("File " + file_name + extension + " has been processed and is now being exported ...")
-        pages_df[pages_df.columns[1]].to_csv(OUTPUT_DIR + file_name + '.txt', sep='\t', index = False)
+        print("File " + file_name + extension + " has been processed via OCR and is now being exported ...")
+        pages_df[pages_df.columns[1]].to_csv(OUTPUT_DIR + file_name + '.txt', sep = '\t', index = False)
         print("File " + file_name + ".txt has been created and saved!")
-    # save df into a dict with filename as key
-    OCR_dic[file] = pages_df
-    # print('{} is done'.format(file))
+        # save df into a dict with filename as key
+        OCR_dic[file] = pages_df
+    else:
+        print("File " + file_name + extension + " has been processed via text parser and is now being exported ...")
+        # save the extracted text
+        output_file = os.path.join(OUTPUT_DIR, file_name + ".txt")
+        out_file = open(output_file, "w")
+        for t in text:
+            out_file.write(t)
+        out_file.close()
+        print("File " + file_name + ".txt has been created and saved!")
