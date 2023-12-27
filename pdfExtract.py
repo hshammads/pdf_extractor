@@ -27,6 +27,14 @@ OCR_dic = {}
 # FUNCTION DEFINITIONS
 
 # help functions
+# fix orientation for text searchable pdf
+def fix_txt_rot(page):
+    OrientationDegrees = page.get('/Rotate')
+    while OrientationDegrees > 0:
+        page.rotate(90)
+        OrientationDegrees -= 90
+    return page
+
 # extract text from text searchable pdf
 def text_pdf(file):
     # creating a pdf reader object
@@ -39,6 +47,7 @@ def text_pdf(file):
     extracted_text = ""
     for i in range(no_pages):
         page = reader.pages[i]
+        page = fix_txt_rot(page)
         extracted_text += page.extract_text()
     return extracted_text
 
@@ -73,6 +82,11 @@ def ocr(file):
     # create a df to save each pdf's text
     pages_df = pd.DataFrame(columns = ['conf','text'])
     for (i, page) in enumerate(pdf_file):
+        """
+        print(page)
+        im = page.load()
+        print(im)
+        """
         try:
             # transfer image of pdf_file into array
             page_arr = np.asarray(page)
