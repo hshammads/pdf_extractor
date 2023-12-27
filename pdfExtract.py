@@ -32,7 +32,7 @@ def fix_txt_rot(page):
     OrientationDegrees = page.get('/Rotate')
     while OrientationDegrees > 0:
         page.rotate(90)
-        OrientationDegrees -= 90
+        OrientationDegrees = (page.get('/Rotate') % 360)
     return page
 
 # extract text from text searchable pdf
