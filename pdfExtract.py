@@ -85,7 +85,7 @@ def ocr(file):
             # page text
             page_text = pytesseract.image_to_string(page_deskew)
             # extract string
-            pages_df = pages_df._append({'conf': page_conf,'text': page_text}, ignore_index=True)
+            pages_df = pages_df._append({'conf': page_conf,'text': page_text}, ignore_index = True)
         except:
             # if can't extract then give some notes into df
             pages_df = pages_df._append({'conf': -1,'text': 'N/A'}, ignore_index = True)
