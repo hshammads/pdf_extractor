@@ -31,6 +31,8 @@ OCR_dic = {}
 # fix orientation for text searchable pdf
 def fix_txt_rot(page):
     OrientationDegrees = page.get('/Rotate')
+    if OrientationDegrees is None:
+        OrientationDegrees = 0
     while OrientationDegrees > 0:
         page.rotate(90)
         OrientationDegrees = (page.get('/Rotate') % 360)
